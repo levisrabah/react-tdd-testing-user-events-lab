@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
-import '@testing-library/jest-dom';
+import userEvent from "@testing-library/user-event";
+import '@testing-library/jest-dom/extend-expect';
 
 import App from "../App";
 
@@ -9,7 +10,6 @@ test("displays a top-level heading with the text `Hi, I'm _______`", () => {
 
   const topLevelHeading = screen.getByRole("heading", {
     name: /hi, i'm/i,
-    exact: false,
     level: 1,
   });
 
@@ -21,7 +21,8 @@ test("displays an image of yourself", () => {
 
   const image = screen.getByAltText("My profile pic");
 
-  expect(image).toHaveAttribute("src", "https://via.placeholder.com/350");
+  expect(image).toBeInTheDocument();
+  expect(image).toHaveAttribute("src", "/IMG_20240313_105732_808.jpg");
 });
 
 test("displays second-level heading with the text `About Me`", () => {
@@ -53,6 +54,9 @@ test("displays the correct links", () => {
     name: /linkedin/i,
   });
 
+  expect(githubLink).toBeInTheDocument();
+  expect(linkedinLink).toBeInTheDocument();
+
   expect(githubLink).toHaveAttribute(
     "href",
     expect.stringContaining("https://github.com")
@@ -66,26 +70,84 @@ test("displays the correct links", () => {
 
 // Newsletter Form - Initial State
 test("the form includes text inputs for name and email address", () => {
-  // your test code here
+  render(<App />);
+
+  expect(screen.getByLabelText(/enter your name/i)).toBeInTheDocument();
+  expect(
+    screen.getByLabelText(/enter your email address/i)
+  ).toBeInTheDocument();
 });
 
 test("the form includes three checkboxes to select areas of interest", () => {
-  // your test code here
+  render(<App />);
+
+  expect(screen.getAllByRole("checkbox").length).toBe(3);
 });
 
 test("the checkboxes are initially unchecked", () => {
-  // your test code here
+  render(<App />);
+
+  const interestCheckboxes = screen.getAllByRole("checkbox");
+
+  interestCheckboxes.forEach(checkbox => {
+    expect(checkbox).not.toBeChecked();
+  });
+});
+
+test("the form includes a Submit button", () => {
+  render(<App />);
+
+  expect(screen.getByRole("button", { name: /submit/i })).toBeInTheDocument();
 });
 
 // Newsletter Form - Adding Responses
 test("the page shows information the user types into the name and email address form fields", () => {
-  // your test code here
+  render(<App />);
+
+  const fullName = screen.getByLabelText(/enter your name/i);
+  const emailAddress = screen.getByLabelText(/enter your email address/i);
+
+  userEvent.type(fullName, "Fname Lname");
+  userEvent.type(emailAddress, "fnamelname@email.com");
+
+  expect(fullName).toHaveValue("Fname Lname");
+  expect(emailAddress).toHaveValue("fnamelname@email.com");
 });
 
 test("checked status of checkboxes changes when user clicks them", () => {
-  // your test code here
+  render(<App />);
+
+  const interest1 = screen.getByRole("checkbox", { name: /interest 1/i });
+  const interest2 = screen.getByRole("checkbox", { name: /interest 2/i });
+  const interest3 = screen.getByRole("checkbox", { name: /interest 3/i });
+
+  userEvent.click(interest1);
+  userEvent.click(interest2);
+  userEvent.click(interest3);
+
+  expect(interest1).toBeChecked();
+  expect(interest2).toBeChecked();
+  expect(interest3).toBeChecked();
 });
 
 test("a message is displayed when the user clicks the Submit button", () => {
-  // your test code here
+  render(<App />);
+
+  userEvent.type(screen.getByLabelText(/enter your name/i), "Fname Lname");
+  userEvent.type(
+    screen.getByLabelText(/enter your email address/i),
+    "fnamelname@email.com"
+  );
+  userEvent.click(screen.getByRole("checkbox", { name: /interest 1/i }));
+  userEvent.click(screen.getByRole("checkbox", { name: /interest 3/i }));
+  userEvent.click(screen.getByRole("button", { name: /submit/i }));
+
+  expect(
+    screen.getByText(
+      "Thanks Fname Lname! You are signed up for these newsletters:"
+    )
+  ).toBeInTheDocument();
+  expect(screen.getAllByRole("listitem").length).toBe(2);
+  expect(screen.getByText("Interest 1")).toBeInTheDocument();
+  expect(screen.getByText("Interest 3")).toBeInTheDocument();
 });
